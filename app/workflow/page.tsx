@@ -276,7 +276,12 @@ export default function WorkflowPage() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Total Missing Values:</span>
                           <span className="font-medium">
-                            {Object.values(edaResults.missing_values || {}).reduce((a: any, b: any) => a + b, 0)}
+                            {edaResults?.missing_values
+                              ? Object.values(edaResults.missing_values).reduce(
+                                (a: number, b: any) => a + (typeof b === "number" ? b : 0),
+                                0
+                              )
+                            : 0}
                           </span>
                         </div>
                       </div>
@@ -802,7 +807,7 @@ export default function WorkflowPage() {
                 <Card className="p-4 border border-border">
                   <h3 className="font-semibold mb-4">Input Features</h3>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {selectedFeatures.slice(0, 6).map((feature) => (
+                    {selectedFeatures.map((feature) => (
                       <div key={feature} className="space-y-2">
                         <Label htmlFor={feature}>{feature}</Label>
                         <Input

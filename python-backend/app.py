@@ -45,7 +45,7 @@ def rows_to_df(rows):
     for c in df.columns:
         # if all values can be numeric, convert
         try:
-            df[c] = pd.to_numeric(df[c], errors="ignore")
+            df[c] = pd.to_numeric(df[c])
         except Exception:
             pass
     return df
@@ -65,9 +65,10 @@ async def ml_endpoint(req: Request):
         session["data"] = rows
         session["df"] = rows_to_df(rows)
         # clear any cleaned/pipeline if new raw data provided
-        session.pop("df_clean", None)
-        session.pop("pipeline", None)
-        session.pop("model_path", None)
+        if(action not in ("evaluate","predict")):
+            session.pop("df_clean", None)
+            session.pop("pipeline", None)
+            session.pop("model_path", None)
 
     try:
         if action == "load":
@@ -243,33 +244,98 @@ def do_select_features(session, target_column, n_features=10):
     session["selected_features"] = selected
     return {"selected_features": selected, "feature_scores": feature_scores, "n_features_selected": len(selected)}
 
+# def do_train(session, target_column, task_type, model_type, session_id):
+#     df = session.get("df_clean") or session.get("df")
+#     if df is None:
+#         raise ValueError("No dataset in session.")
+#     if target_column not in df.columns:
+#         raise ValueError("target column missing")
+#     X = df.drop(columns=[target_column])
+#     y = df[target_column]
+#     numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
+#     cat_cols = X.select_dtypes(exclude=[np.number]).columns.tolist()
+
+#     numeric_pipeline = Pipeline([("imputer", SimpleImputer(strategy="mean"))])
+#     cat_pipeline = Pipeline([("imputer", SimpleImputer(strategy="most_frequent")), ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False))])
+#     preprocessor = ColumnTransformer([("num", numeric_pipeline, numeric_cols), ("cat", cat_pipeline, cat_cols)], remainder="drop")
+
+#     if task_type == "classification":
+#         model = RandomForestClassifier(n_estimators=100, random_state=42)
+#     else:
+#         model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+#     pipeline = Pipeline([("pre", preprocessor), ("model", model)])
+
+#     # small train/test split
+#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+#     pipeline.fit(X_train, y_train)
+
+#     # save pipeline and test set to session
+#     session["pipeline"] = pipeline
+#     session["X_test"] = X_test.reset_index(drop=True)
+#     session["y_test"] = y_test.reset_index(drop=True)
+
+#     model_id = str(uuid.uuid4())
+#     path = os.path.join(MODEL_DIR, f"model_{model_id}.pkl")
+#     joblib.dump(pipeline, path)
+#     session["model_path"] = path
+#     session["model_id"] = model_id
+
+#     return {"model_type": model_type, "task_type": task_type, "training_complete": True, "sessionId": session_id}
+
+
 def do_train(session, target_column, task_type, model_type, session_id):
     df = session.get("df_clean") or session.get("df")
     if df is None:
         raise ValueError("No dataset in session.")
     if target_column not in df.columns:
         raise ValueError("target column missing")
-    X = df.drop(columns=[target_column])
+
+    # ✅ Use selected features if available
+    selected_features = session.get("selected_features")
+    if selected_features:
+        X = df[selected_features]
+    else:
+        X = df.drop(columns=[target_column])
+
     y = df[target_column]
+
     numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
     cat_cols = X.select_dtypes(exclude=[np.number]).columns.tolist()
 
-    numeric_pipeline = Pipeline([("imputer", SimpleImputer(strategy="mean"))])
-    cat_pipeline = Pipeline([("imputer", SimpleImputer(strategy="most_frequent")), ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False))])
-    preprocessor = ColumnTransformer([("num", numeric_pipeline, numeric_cols), ("cat", cat_pipeline, cat_cols)], remainder="drop")
+    numeric_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="mean"))
+    ])
+    cat_pipeline = Pipeline([
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+    ])
 
+    preprocessor = ColumnTransformer([
+        ("num", numeric_pipeline, numeric_cols),
+        ("cat", cat_pipeline, cat_cols)
+    ], remainder="drop")
+
+    # Model selection
     if task_type == "classification":
         model = RandomForestClassifier(n_estimators=100, random_state=42)
     else:
         model = RandomForestRegressor(n_estimators=100, random_state=42)
 
-    pipeline = Pipeline([("pre", preprocessor), ("model", model)])
+    pipeline = Pipeline([
+        ("pre", preprocessor),
+        ("model", model)
+    ])
 
-    # small train/test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Train
     pipeline.fit(X_train, y_train)
 
-    # save pipeline and test set to session
+    # Save to session
     session["pipeline"] = pipeline
     session["X_test"] = X_test.reset_index(drop=True)
     session["y_test"] = y_test.reset_index(drop=True)
@@ -280,7 +346,13 @@ def do_train(session, target_column, task_type, model_type, session_id):
     session["model_path"] = path
     session["model_id"] = model_id
 
-    return {"model_type": model_type, "task_type": task_type, "training_complete": True, "sessionId": session_id}
+    return {
+        "model_type": model_type,
+        "task_type": task_type,
+        "training_complete": True,
+        "sessionId": session_id,
+        "used_features": selected_features or list(X.columns)
+    }
 
 def do_evaluate(session):
     pipeline = session.get("pipeline")
@@ -345,3 +417,40 @@ def do_predict(session, input_data):
     except Exception:
         val = first
     return {"prediction": val, "confidence": confidence}
+
+
+# def do_predict(session, new_data=None):
+#     pipeline = session.get("pipeline")
+#     df = session.get("df_clean") or session.get("df")
+#     target_column = session.get("target_column")
+#     print(session)
+#     if pipeline is None:
+#         raise ValueError("No trained model found in session.")
+
+#     # ✅ Use the same selected features as training
+#     selected_features = session.get("selected_features")
+#     print(selected_features)
+#     if new_data is not None:
+#         # Convert to DataFrame if it’s new input
+#         X = pd.DataFrame(new_data)
+#     else:
+#         # Predict on test split or entire dataset
+#         if df is None:
+#             raise ValueError("No dataset found for prediction.")
+#         X = df.drop(columns=[target_column])
+
+#     # ✅ Restrict to selected features if available
+#     if selected_features:
+#         missing = [f for f in selected_features if f not in X.columns]
+#         if missing:
+#             raise ValueError(f"Missing features in input: {missing}")
+#         X = X[selected_features]
+
+#     # Predict
+#     predictions = pipeline.predict(X)
+
+#     # If it’s the test data, store the results
+#     if "y_test" in session and len(X) == len(session["y_test"]):
+#         session["predictions"] = predictions.tolist()
+
+#     return predictions.tolist()
