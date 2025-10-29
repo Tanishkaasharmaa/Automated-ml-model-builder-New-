@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+<<<<<<< HEAD
     // body.sessionId = "same-id-every-time";
+=======
+>>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
     const pythonUrl = "http://127.0.0.1:8000/ml";
 
     console.log("[proxy] forwarding to", pythonUrl);
