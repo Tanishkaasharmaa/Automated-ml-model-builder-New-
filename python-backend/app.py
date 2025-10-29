@@ -291,7 +291,7 @@ def do_train(session, target_column, task_type, model_type, session_id):
     if target_column not in df.columns:
         raise ValueError("target column missing")
 
-    # ✅ Use selected features if available
+    #  Use selected features if available
     selected_features = session.get("selected_features")
     if selected_features:
         X = df[selected_features]
@@ -427,7 +427,7 @@ def do_predict(session, input_data):
 #     if pipeline is None:
 #         raise ValueError("No trained model found in session.")
 
-#     # ✅ Use the same selected features as training
+#     # Use the same selected features as training
 #     selected_features = session.get("selected_features")
 #     print(selected_features)
 #     if new_data is not None:
@@ -439,7 +439,7 @@ def do_predict(session, input_data):
 #             raise ValueError("No dataset found for prediction.")
 #         X = df.drop(columns=[target_column])
 
-#     # ✅ Restrict to selected features if available
+#     #  Restrict to selected features if available
 #     if selected_features:
 #         missing = [f for f in selected_features if f not in X.columns]
 #         if missing:
