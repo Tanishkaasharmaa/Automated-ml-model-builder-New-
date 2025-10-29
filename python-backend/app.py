@@ -45,11 +45,7 @@ def rows_to_df(rows):
     for c in df.columns:
         # if all values can be numeric, convert
         try:
-<<<<<<< HEAD
-            df[c] = pd.to_numeric(df[c])
-=======
             df[c] = pd.to_numeric(df[c], errors="ignore")
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
         except Exception:
             pass
     return df
@@ -69,16 +65,14 @@ async def ml_endpoint(req: Request):
         session["data"] = rows
         session["df"] = rows_to_df(rows)
         # clear any cleaned/pipeline if new raw data provided
-<<<<<<< HEAD
         if(action not in ("evaluate","predict")):
             session.pop("df_clean", None)
             session.pop("pipeline", None)
             session.pop("model_path", None)
-=======
+
         session.pop("df_clean", None)
         session.pop("pipeline", None)
         session.pop("model_path", None)
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
 
     try:
         if action == "load":
@@ -254,7 +248,6 @@ def do_select_features(session, target_column, n_features=10):
     session["selected_features"] = selected
     return {"selected_features": selected, "feature_scores": feature_scores, "n_features_selected": len(selected)}
 
-<<<<<<< HEAD
 # def do_train(session, target_column, task_type, model_type, session_id):
 #     df = session.get("df_clean") or session.get("df")
 #     if df is None:
@@ -295,15 +288,12 @@ def do_select_features(session, target_column, n_features=10):
 #     return {"model_type": model_type, "task_type": task_type, "training_complete": True, "sessionId": session_id}
 
 
-=======
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
 def do_train(session, target_column, task_type, model_type, session_id):
     df = session.get("df_clean") or session.get("df")
     if df is None:
         raise ValueError("No dataset in session.")
     if target_column not in df.columns:
         raise ValueError("target column missing")
-<<<<<<< HEAD
 
     #  Use selected features if available
     selected_features = session.get("selected_features")
@@ -331,7 +321,6 @@ def do_train(session, target_column, task_type, model_type, session_id):
     ], remainder="drop")
 
     # Model selection
-=======
     X = df.drop(columns=[target_column])
     y = df[target_column]
     numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
@@ -341,13 +330,11 @@ def do_train(session, target_column, task_type, model_type, session_id):
     cat_pipeline = Pipeline([("imputer", SimpleImputer(strategy="most_frequent")), ("ohe", OneHotEncoder(handle_unknown="ignore", sparse=False))])
     preprocessor = ColumnTransformer([("num", numeric_pipeline, numeric_cols), ("cat", cat_pipeline, cat_cols)], remainder="drop")
 
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
     if task_type == "classification":
         model = RandomForestClassifier(n_estimators=100, random_state=42)
     else:
         model = RandomForestRegressor(n_estimators=100, random_state=42)
 
-<<<<<<< HEAD
     pipeline = Pipeline([
         ("pre", preprocessor),
         ("model", model)
@@ -362,7 +349,6 @@ def do_train(session, target_column, task_type, model_type, session_id):
     pipeline.fit(X_train, y_train)
 
     # Save to session
-=======
     pipeline = Pipeline([("pre", preprocessor), ("model", model)])
 
     # small train/test split
@@ -370,7 +356,6 @@ def do_train(session, target_column, task_type, model_type, session_id):
     pipeline.fit(X_train, y_train)
 
     # save pipeline and test set to session
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
     session["pipeline"] = pipeline
     session["X_test"] = X_test.reset_index(drop=True)
     session["y_test"] = y_test.reset_index(drop=True)
@@ -381,7 +366,6 @@ def do_train(session, target_column, task_type, model_type, session_id):
     session["model_path"] = path
     session["model_id"] = model_id
 
-<<<<<<< HEAD
     return {
         "model_type": model_type,
         "task_type": task_type,
@@ -389,9 +373,7 @@ def do_train(session, target_column, task_type, model_type, session_id):
         "sessionId": session_id,
         "used_features": selected_features or list(X.columns)
     }
-=======
     return {"model_type": model_type, "task_type": task_type, "training_complete": True, "sessionId": session_id}
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
 
 def do_evaluate(session):
     pipeline = session.get("pipeline")
@@ -456,7 +438,6 @@ def do_predict(session, input_data):
     except Exception:
         val = first
     return {"prediction": val, "confidence": confidence}
-<<<<<<< HEAD
 
 
 # def do_predict(session, new_data=None):
@@ -494,5 +475,3 @@ def do_predict(session, input_data):
 #         session["predictions"] = predictions.tolist()
 
 #     return predictions.tolist()
-=======
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
