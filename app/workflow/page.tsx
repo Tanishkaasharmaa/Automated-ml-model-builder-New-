@@ -276,16 +276,7 @@ export default function WorkflowPage() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Total Missing Values:</span>
                           <span className="font-medium">
-<<<<<<< HEAD
-                            {edaResults?.missing_values
-                              ? Object.values(edaResults.missing_values).reduce(
-                                (a: number, b: any) => a + (typeof b === "number" ? b : 0),
-                                0
-                              )
-                            : 0}
-=======
                             {Object.values(edaResults.missing_values || {}).reduce((a: any, b: any) => a + b, 0)}
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
                           </span>
                         </div>
                       </div>
@@ -811,20 +802,12 @@ export default function WorkflowPage() {
                 <Card className="p-4 border border-border">
                   <h3 className="font-semibold mb-4">Input Features</h3>
                   <div className="grid md:grid-cols-2 gap-4">
-<<<<<<< HEAD
-                    {selectedFeatures.map((feature) => (
-=======
                     {selectedFeatures.slice(0, 6).map((feature) => (
->>>>>>> 2c58b61a90212c582bfc99236432abd36bce52b7
                       <div key={feature} className="space-y-2">
                         <Label htmlFor={feature}>{feature}</Label>
                         <Input
                           id={feature}
-                          placeholder={`Enter ${feature}`}
-                          value={predictionInput[feature] || ""}
-                          onChange={(e) => setPredictionInput({ ...predictionInput, [feature]: e.target.value })}
                         />
-                      </div>
                     ))}
                   </div>
                   <Button onClick={makePrediction} disabled={loading} className="mt-4">
