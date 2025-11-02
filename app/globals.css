@@ -74,6 +74,12 @@
   --sidebar-border: oklch(0.25 0.02 320);
   --sidebar-ring: oklch(0.7 0.22 340);
 }
+/* Center the main container */
+.container {
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 20px;
+}
 
 @theme inline {
   --font-sans: var(--font-geist-sans);

@@ -32,6 +32,7 @@ const steps = [
   { id: "train", label: "Train", icon: Zap },
   { id: "evaluate", label: "Evaluate", icon: TrendingUp },
   { id: "predict", label: "Predict", icon: Sparkles },
+  { id: "test", label: "Test", icon: BarChart3 },
 ]
 
 export default function WorkflowPage() {
@@ -73,6 +74,36 @@ export default function WorkflowPage() {
   // Prediction
   const [predictionInput, setPredictionInput] = useState<any>({})
   const [predictionResult, setPredictionResult] = useState<any>(null)
+
+  // Testing
+  const [testFile, setTestFile] = useState<File | null>(null);
+
+  interface ClassificationResults {
+    metrics: {
+      accuracy?: number;
+      precision?: number;
+      recall?: number;
+      f1_score?: number;
+    };
+    confusion_matrix?: number[][];
+    sample_predictions: any[];
+  }
+
+  interface RegressionResults {
+    metrics: {
+      mse?: number;
+      rmse?: number;
+      mae?: number;
+      r2?: number;
+    };
+    sample_predictions: any[];
+  }
+
+  type TestResults = ClassificationResults | RegressionResults;
+
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
+
+
 
   useEffect(() => {
     const data = localStorage.getItem("ml_dataset")
@@ -165,25 +196,41 @@ export default function WorkflowPage() {
     if (result) setPredictionResult(result)
   }
 
-  const downloadModel = () => {
-    const modelData = {
-      sessionId,
-      taskType,
-      modelType,
-      targetColumn,
-      selectedFeatures,
-      trainingResults,
-      evaluationResults,
+  const runTestEvaluation = async () => {
+    if (!testFile) {  
+      alert("Please upload a dataset first.");
+      return; 
     }
-    const blob = new Blob([JSON.stringify(modelData, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `ml_model_${sessionId}.json`
-    a.click()
-  }
+    const formData = new FormData();
+    formData.append("file", testFile); 
+    const response = await fetch("http://localhost:8000/test-model", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+    setTestResults(data);
+  };
 
   const columns = dataset.length > 0 ? Object.keys(dataset[0]) : []
+
+  const downloadModel = async () => {
+    try {
+
+      const response = await fetch("http://localhost:8000/download_model");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "trained_model.pkl"; // File name
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("Model download failed:", error);
+      alert("Failed to download model. Make sure the model is trained.");
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -712,7 +759,7 @@ export default function WorkflowPage() {
           </TabsContent>
 
           <TabsContent value="evaluate" className="mt-0">
-            <Card className="p-6">
+            < Card className="p-6">
               <h2 className="text-2xl font-bold mb-4">Model Evaluation</h2>
               <p className="text-muted-foreground mb-6">Review your model's performance metrics</p>
 
@@ -734,54 +781,65 @@ export default function WorkflowPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="p-4 border border-border">
-                      <div className="text-sm text-muted-foreground mb-1">Accuracy</div>
-                      <div className="text-2xl font-bold">{(evaluationResults.test_accuracy * 100).toFixed(2)}%</div>
-                    </Card>
-                    <Card className="p-4 border border-border">
-                      <div className="text-sm text-muted-foreground mb-1">Precision</div>
-                      <div className="text-2xl font-bold">{(evaluationResults.precision * 100).toFixed(2)}%</div>
-                    </Card>
-                    <Card className="p-4 border border-border">
-                      <div className="text-sm text-muted-foreground mb-1">Recall</div>
-                      <div className="text-2xl font-bold">{(evaluationResults.recall * 100).toFixed(2)}%</div>
-                    </Card>
-                    <Card className="p-4 border border-border">
-                      <div className="text-sm text-muted-foreground mb-1">F1 Score</div>
-                      <div className="text-2xl font-bold">{(evaluationResults.f1_score * 100).toFixed(2)}%</div>
-                    </Card>
-                  </div>
-
-                  <Card className="p-4 border border-border">
-                    <h3 className="font-semibold mb-3">Performance Summary</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between mb-1 text-sm">
-                          <span>Overall Accuracy</span>
-                          <span className="font-medium">{(evaluationResults.test_accuracy * 100).toFixed(1)}%</span>
-                        </div>
-                        <Progress value={evaluationResults.test_accuracy * 100} className="h-2" />
+                  {("test_accuracy" in evaluationResults) ? (
+                    // Classification Metrics
+                    <>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Card className="p-4 border border-border">
+                          <div className="text-sm text-muted-foreground mb-1">Accuracy</div>
+                          <div className="text-2xl font-bold">{(evaluationResults.test_accuracy * 100).toFixed(2)}%</div>
+                        </Card>
+                        <Card className="p-4 border border-border">
+                          <div className="text-sm text-muted-foreground mb-1">Precision</div>
+                          <div className="text-2xl font-bold">{(evaluationResults.precision * 100).toFixed(2)}%</div>
+                        </Card>
+                        <Card className="p-4 border border-border">
+                          <div className="text-sm text-muted-foreground mb-1">Recall</div>
+                          <div className="text-2xl font-bold">{(evaluationResults.recall * 100).toFixed(2)}%</div>
+                        </Card>
+                        <Card className="p-4 border border-border">
+                          <div className="text-sm text-muted-foreground mb-1">F1 Score</div>
+                          <div className="text-2xl font-bold">{(evaluationResults.f1_score * 100).toFixed(2)}%</div>
+                        </Card>
                       </div>
-                      <div>
-                        <div className="flex justify-between mb-1 text-sm">
-                          <span>Precision</span>
-                          <span className="font-medium">{(evaluationResults.precision * 100).toFixed(1)}%</span>
-                        </div>
-                        <Progress value={evaluationResults.precision * 100} className="h-2" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-1 text-sm">
-                          <span>Recall</span>
-                          <span className="font-medium">{(evaluationResults.recall * 100).toFixed(1)}%</span>
-                        </div>
-                        <Progress value={evaluationResults.recall * 100} className="h-2" />
-                      </div>
+                    </>
+                  ) : (
+                    // Regression Metrics
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Card className="p-4 border border-border">
+                        <div className="text-sm text-muted-foreground mb-1">RMSE</div>
+                        <div className="text-2xl font-bold">{evaluationResults.rmse.toFixed(4)}</div>
+                      </Card>
+                      <Card className="p-4 border border-border">
+                        <div className="text-sm text-muted-foreground mb-1">MSE</div>
+                        <div className="text-2xl font-bold">{evaluationResults.mse.toFixed(4)}</div>
+                      </Card>
+                      <Card className="p-4 border border-border">
+                        <div className="text-sm text-muted-foreground mb-1">MAE</div>
+                        <div className="text-2xl font-bold">{evaluationResults.mae.toFixed(4)}</div>
+                      </Card>
+                      <Card className="p-4 border border-border">
+                        <div className="text-sm text-muted-foreground mb-1">R² Score</div>
+                        <div className="text-2xl font-bold">{evaluationResults.r2.toFixed(4)}</div>
+                      </Card>
                     </div>
-                  </Card>
+                  )}
+
+                  {/* Sample Predictions */}
+                  {evaluationResults.sample_predictions && evaluationResults.sample_predictions.length > 0 && (
+                    <Card className="p-4 border border-border mt-4">
+                      <h3 className="font-semibold mb-2">Sample Predictions</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {evaluationResults.sample_predictions.map((val: string | number, idx: number) => (
+                          <div key={idx} className="px-3 py-1 bg-pink-100 text-pink-700 rounded">
+                            {val}
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
                 </div>
               )}
-
               <div className="mt-6 flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setCurrentStep("train")}>
                   Back
@@ -846,26 +904,167 @@ export default function WorkflowPage() {
                     </div>
                   </Card>
                 )}
-
-                <Card className="p-4 border border-border">
-                  <h3 className="font-semibold mb-3">Export Model</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Download your trained model configuration and results
-                  </p>
-                  <Button variant="outline" onClick={downloadModel}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Model (.json)
-                  </Button>
-                </Card>
-              </div>
+              </div> 
 
               <div className="mt-6 flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setCurrentStep("evaluate")}>
                   Back
                 </Button>
-                <Button
-                  onClick={() => alert("Workflow complete! You can now download your model or make more predictions.")}
+                <Button onClick={() => setCurrentStep("test")}>
+                  Next: Test model
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+          <TabsContent value="test">
+              <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Upload Dataset for Testing</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Upload a dataset to evaluate the exported model.
+              </p>
+
+              <div className="flex items-center space-x-4 mb-4">
+                {/* Hidden file input */}
+                <input
+                  id="test-file-upload"
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setTestFile(e.target.files?.[0] ?? null)}
+                  className="hidden"
+                />
+
+                {/* Custom upload button */}
+                <label
+                  htmlFor="test-file-upload"
+                  className="cursor-pointer bg-pink-400 text-white px-4 py-2 rounded hover:bg-pink-500"
                 >
+                  {testFile ? "Change File" : "Upload CSV"}
+                </label>
+
+                {/* Display selected file name */}
+                {testFile && <span className="text-gray-700 font-medium">{testFile.name}</span>}
+              </div>
+
+              <Button onClick={runTestEvaluation} disabled={!testFile}>
+                Run Evaluation
+              </Button>
+
+                {testResults && (
+  <div className="space-y-6">
+    {/* Metrics */}
+    {testResults.metrics && (
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Object.entries(testResults.metrics).map(([key, value]) =>
+          value !== undefined ? (
+            <Card key={key} className="p-4 border border-border">
+              <div className="text-sm text-muted-foreground mb-1">
+                {key.replace(/_/g, " ").toUpperCase()}
+              </div>
+              <div className="text-2xl font-bold">
+                {typeof value === "number"
+                  ? ["accuracy", "precision", "recall", "f1_score"].includes(key)
+                    ? (value * 100).toFixed(2) + "%"
+                    : value.toFixed(2)
+                  : String(value)}
+              </div>
+            </Card>
+          ) : null
+        )}
+      </div>
+    )}
+
+    {/* Confusion Matrix (only for classification) */}
+    {"confusion_matrix" in testResults && testResults.confusion_matrix && (
+      <Card className="p-4 border border-border">
+        <h3 className="text-lg font-semibold mb-4">Confusion Matrix</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full table-auto border-collapse border border-gray-200">
+            <thead>
+              <tr>
+                <th className="border px-4 py-2 bg-gray-100">Actual \ Predicted</th>
+                {testResults.confusion_matrix[0].map((_, idx) => (
+                  <th key={idx} className="border px-4 py-2 bg-gray-100">
+                    {idx}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {testResults.confusion_matrix.map((row, rowIdx) => (
+                <tr key={rowIdx}>
+                  <td className="border px-4 py-2 font-medium">{rowIdx}</td>
+                  {row.map((val, colIdx) => (
+                    <td
+                      key={colIdx}
+                      className={`border px-4 py-2 text-center ${
+                        rowIdx === colIdx ? "bg-green-100" : ""
+                      }`}
+                    >
+                      {val}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    )}
+
+    {/* Sample Predictions */}
+    {testResults.sample_predictions && testResults.sample_predictions.length > 0 && (
+      <Card className="p-4 border border-border">
+        <h3 className="font-semibold mb-2">Sample Predictions</h3>
+        { "rmse" in testResults || "mse" in testResults ? (
+          // Regression: display as JSON
+          <pre className="text-sm text-gray-700 overflow-x-auto">
+            {JSON.stringify(testResults.sample_predictions, null, 2)}
+          </pre>
+        ) : (
+          // Classification: show as key-value pairs
+          <pre className="text-sm text-gray-700 overflow-x-auto">
+            {JSON.stringify(
+              testResults.sample_predictions.map((pred, idx) => ({
+                [`Sample_${idx + 1}`]: pred,
+              })),
+              null,
+              2
+            )}
+          </pre>
+        )}
+      </Card>
+    )}
+
+
+
+                    {/* Sample Predictions */}
+                    {testResults.sample_predictions && testResults.sample_predictions.length > 0 && (
+                      <Card className="p-4 border border-border">
+                        <h3 className="font-semibold mb-2">Sample Predictions</h3>
+                        <pre className="text-sm text-gray-700 overflow-x-auto">
+                          {JSON.stringify(testResults.sample_predictions, null, 2)}
+                        </pre>
+                      </Card>
+                    )}
+
+                  </div>
+                )}
+                {/* Export Model */}
+                <Card className="p-6 border shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3">Export Model</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Download your trained model (.pkl) for future predictions
+                  </p>
+                  <Button variant="outline" onClick={downloadModel}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Model (.pkl)
+                  </Button>
+                </Card>
+              <div className="mt-6 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setCurrentStep("predict")}>
+                  Back
+                </Button>
+                <Button onClick={() => alert("Workflow complete! You can now download your model .")}>
                   Complete Workflow
                 </Button>
               </div>
