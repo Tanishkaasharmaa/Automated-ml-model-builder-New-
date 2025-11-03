@@ -107,14 +107,60 @@ async def ml_endpoint(req: Request):
 
 # ---- Helper functions ----
 
+# def do_eda(session):
+#     df: pd.DataFrame = session.get("df")
+#     if df is None:
+#         raise ValueError("No dataset in session.")
+#     numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+#     categorical_columns = df.select_dtypes(exclude=[np.number]).columns.tolist()
+#     missing_values = df.isnull().sum().to_dict()
+#     missing_percentage = (df.isnull().mean() * 100).round(2).to_dict()
+#     summary_stats = {}
+#     for c in numeric_columns:
+#         s = df[c].describe()
+#         summary_stats[c] = {
+#             "mean": None if pd.isna(s.get("mean")) else float(s["mean"]),
+#             "std": None if pd.isna(s.get("std")) else float(s["std"]),
+#             "min": None if pd.isna(s.get("min")) else float(s["min"]),
+#             "max": None if pd.isna(s.get("max")) else float(s["max"]),
+#             "median": None if pd.isna(df[c].median()) else float(df[c].median()),
+#             "q1": None if pd.isna(df[c].quantile(0.25)) else float(df[c].quantile(0.25)),
+#             "q3": None if pd.isna(df[c].quantile(0.75)) else float(df[c].quantile(0.75))
+#         }
+#     return {
+#         "numeric_columns": numeric_columns,
+#         "categorical_columns": categorical_columns,
+#         "missing_values": {k: int(v) for k, v in missing_values.items()},
+#         "missing_percentage": missing_percentage,
+#         "summary_stats": summary_stats,
+#     }
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
+
+def fig_to_base64():
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches="tight")
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+    plt.close()
+    return img_base64
+
 def do_eda(session):
     df: pd.DataFrame = session.get("df")
     if df is None:
         raise ValueError("No dataset in session.")
+    
     numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
     categorical_columns = df.select_dtypes(exclude=[np.number]).columns.tolist()
+
     missing_values = df.isnull().sum().to_dict()
     missing_percentage = (df.isnull().mean() * 100).round(2).to_dict()
+
+    # Summary Stats
     summary_stats = {}
     for c in numeric_columns:
         s = df[c].describe()
@@ -127,13 +173,43 @@ def do_eda(session):
             "q1": None if pd.isna(df[c].quantile(0.25)) else float(df[c].quantile(0.25)),
             "q3": None if pd.isna(df[c].quantile(0.75)) else float(df[c].quantile(0.75))
         }
+
+    # ---- Visualizations ---- #
+    visualizations = {
+        "numeric": {},
+        "categorical": {}
+    }
+
+    # Numeric Plots: Hist + Boxplot
+    for col in numeric_columns:
+        # Histogram
+        plt.figure(figsize=(5, 3))
+        plt.hist(df[col].dropna(), bins=20)
+        plt.title(f"Histogram of {col}")
+        visualizations["numeric"][col + "_hist"] = fig_to_base64()
+
+        # Boxplot
+        plt.figure(figsize=(4, 4))
+        plt.boxplot(df[col].dropna())
+        plt.title(f"Boxplot of {col}")
+        visualizations["numeric"][col + "_box"] = fig_to_base64()
+
+    # Categorical Plots: Countplot
+    for col in categorical_columns:
+        plt.figure(figsize=(6, 3))
+        df[col].value_counts().plot(kind="bar")
+        plt.title(f"Count Plot of {col}")
+        visualizations["categorical"][col + "_countplot"] = fig_to_base64()
+
     return {
         "numeric_columns": numeric_columns,
         "categorical_columns": categorical_columns,
         "missing_values": {k: int(v) for k, v in missing_values.items()},
         "missing_percentage": missing_percentage,
         "summary_stats": summary_stats,
+        "visualizations": visualizations
     }
+
 
 def do_validate(session):
     df: pd.DataFrame = session.get("df")

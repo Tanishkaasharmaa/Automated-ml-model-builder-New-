@@ -293,7 +293,7 @@ export default function WorkflowPage() {
               {!edaResults ? (
                 <div className="text-center py-8">
                   <Button onClick={performEDA} disabled={loading} size="lg">
-                    {loading ? (
+                    {loading ? (  
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Analyzing...
@@ -323,7 +323,10 @@ export default function WorkflowPage() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Total Missing Values:</span>
                           <span className="font-medium">
-                            {Object.values(edaResults.missing_values || {}).reduce((a: any, b: any) => a + b, 0)}
+                            {(Object.values(edaResults.missing_values || {}) as number[]).reduce(
+                              (a, b) => a + Number(b),
+                              0
+                            )}
                           </span>
                         </div>
                       </div>
