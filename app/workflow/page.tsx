@@ -293,115 +293,6 @@ export default function WorkflowPage() {
               onNext={() => setCurrentStep("validate")}
             />
           </TabsContent>
-          {/* <TabsContent value="eda" className="mt-0">
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Exploratory Data Analysis</h2>
-              <p className="text-muted-foreground mb-6">
-                Analyze your dataset with automatic visualizations and statistics
-              </p>
-
-              {!edaResults ? (
-                <div className="text-center py-8">
-                  <Button onClick={performEDA} disabled={loading} size="lg">
-                    {loading ? (  
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <BarChart3 className="mr-2 h-4 w-4" />
-                        Run EDA Analysis
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card className="p-4 border border-border">
-                      <h3 className="font-semibold mb-3">Dataset Overview</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Numeric Columns:</span>
-                          <span className="font-medium">{edaResults.numeric_columns?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Categorical Columns:</span>
-                          <span className="font-medium">{edaResults.categorical_columns?.length || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total Missing Values:</span>
-                          <span className="font-medium">
-                            {(Object.values(edaResults.missing_values || {}) as number[]).reduce(
-                              (a, b) => a + Number(b),
-                              0
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="p-4 border border-border">
-                      <h3 className="font-semibold mb-3">Missing Values by Column</h3>
-                      <div className="space-y-2 text-sm max-h-40 overflow-y-auto">
-                        {Object.entries(edaResults.missing_values || {}).map(([col, count]: any) => (
-                          <div key={col} className="flex justify-between">
-                            <span className="text-muted-foreground truncate">{col}:</span>
-                            <span className={count > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
-                              {count} ({edaResults.missing_percentage?.[col]?.toFixed(1)}%)
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  </div>
-
-                  {edaResults.numeric_columns?.length > 0 && (
-                    <Card className="p-4 border border-border">
-                      <h3 className="font-semibold mb-3">Summary Statistics</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left p-2">Column</th>
-                              <th className="text-right p-2">Mean</th>
-                              <th className="text-right p-2">Std</th>
-                              <th className="text-right p-2">Min</th>
-                              <th className="text-right p-2">Max</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {edaResults.numeric_columns.slice(0, 5).map((col: string) => (
-                              <tr key={col} className="border-b">
-                                <td className="p-2 font-medium">{col}</td>
-                                <td className="text-right p-2">
-                                  {edaResults.summary_stats?.[col]?.mean?.toFixed(2) || "N/A"}
-                                </td>
-                                <td className="text-right p-2">
-                                  {edaResults.summary_stats?.[col]?.std?.toFixed(2) || "N/A"}
-                                </td>
-                                <td className="text-right p-2">
-                                  {edaResults.summary_stats?.[col]?.min?.toFixed(2) || "N/A"}
-                                </td>
-                                <td className="text-right p-2">
-                                  {edaResults.summary_stats?.[col]?.max?.toFixed(2) || "N/A"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </Card>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-end">
-                <Button onClick={() => setCurrentStep("validate")}>Next: Data Validation</Button>
-              </div>
-            </Card>
-          </TabsContent> */}
 
           <TabsContent value="validate" className="mt-0">
             <Card className="p-6">
@@ -1024,30 +915,7 @@ export default function WorkflowPage() {
       </Card>
     )}
 
-    {/* Sample Predictions
-    {testResults.sample_predictions && testResults.sample_predictions.length > 0 && (
-      <Card className="p-4 border border-border">
-        <h3 className="font-semibold mb-2">Sample Predictions</h3>
-        { "rmse" in testResults || "mse" in testResults ? (
-          // Regression: display as JSON
-          <pre className="text-sm text-gray-700 overflow-x-auto">
-            {JSON.stringify(testResults.sample_predictions, null, 2)}
-          </pre>
-        ) : (
-          // Classification: show as key-value pairs
-          <pre className="text-sm text-gray-700 overflow-x-auto">
-            {JSON.stringify(
-              testResults.sample_predictions.map((pred, idx) => ({
-                [`Sample_${idx + 1}`]: pred,
-              })),
-              null,
-              2
-            )}
-          </pre>
-        )}
-      </Card>
-    )} */}
-
+   
 
 
                     {/* Sample Predictions */}
