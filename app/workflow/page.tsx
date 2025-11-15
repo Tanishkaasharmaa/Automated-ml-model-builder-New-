@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import EdaPanel from "@/components/eda/edapanel"
+
 import {
   BarChart3,
   CheckCircle2,
@@ -284,6 +286,14 @@ export default function WorkflowPage() {
         {/* Content Area */}
         <Tabs value={currentStep} onValueChange={setCurrentStep}>
           <TabsContent value="eda" className="mt-0">
+            <EdaPanel
+              edaResults={edaResults}
+              performEDA={performEDA}
+              loading={loading}
+              onNext={() => setCurrentStep("validate")}
+            />
+          </TabsContent>
+          {/* <TabsContent value="eda" className="mt-0">
             <Card className="p-6">
               <h2 className="text-2xl font-bold mb-4">Exploratory Data Analysis</h2>
               <p className="text-muted-foreground mb-6">
@@ -391,7 +401,7 @@ export default function WorkflowPage() {
                 <Button onClick={() => setCurrentStep("validate")}>Next: Data Validation</Button>
               </div>
             </Card>
-          </TabsContent>
+          </TabsContent> */}
 
           <TabsContent value="validate" className="mt-0">
             <Card className="p-6">
@@ -1014,7 +1024,7 @@ export default function WorkflowPage() {
       </Card>
     )}
 
-    {/* Sample Predictions */}
+    {/* Sample Predictions
     {testResults.sample_predictions && testResults.sample_predictions.length > 0 && (
       <Card className="p-4 border border-border">
         <h3 className="font-semibold mb-2">Sample Predictions</h3>
@@ -1036,7 +1046,7 @@ export default function WorkflowPage() {
           </pre>
         )}
       </Card>
-    )}
+    )} */}
 
 
 

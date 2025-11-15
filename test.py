@@ -17,4 +17,4 @@ y_pred = pipeline.predict(X)
 
 # Calculate accuracy
 accuracy = accuracy_score(y_true, y_pred)
-print(f"✅ Model Accuracy: {accuracy:.4f}")
+print(f"Model Accuracy: {accuracy:.4f}")

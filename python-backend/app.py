@@ -1,6 +1,9 @@
 # python-backend/app.py
 import os
 import uuid
+import matplotlib
+matplotlib.use("Agg")  # <-- Forces non-GUI backend
+import seaborn as sns
 from typing import Any, Dict
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,39 +108,13 @@ async def ml_endpoint(req: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
-# ---- Helper functions ----
-
-# def do_eda(session):
-#     df: pd.DataFrame = session.get("df")
-#     if df is None:
-#         raise ValueError("No dataset in session.")
-#     numeric_columns = df.select_dtypes(include=[np.number]).columns.tolist()
-#     categorical_columns = df.select_dtypes(exclude=[np.number]).columns.tolist()
-#     missing_values = df.isnull().sum().to_dict()
-#     missing_percentage = (df.isnull().mean() * 100).round(2).to_dict()
-#     summary_stats = {}
-#     for c in numeric_columns:
-#         s = df[c].describe()
-#         summary_stats[c] = {
-#             "mean": None if pd.isna(s.get("mean")) else float(s["mean"]),
-#             "std": None if pd.isna(s.get("std")) else float(s["std"]),
-#             "min": None if pd.isna(s.get("min")) else float(s["min"]),
-#             "max": None if pd.isna(s.get("max")) else float(s["max"]),
-#             "median": None if pd.isna(df[c].median()) else float(df[c].median()),
-#             "q1": None if pd.isna(df[c].quantile(0.25)) else float(df[c].quantile(0.25)),
-#             "q3": None if pd.isna(df[c].quantile(0.75)) else float(df[c].quantile(0.75))
-#         }
-#     return {
-#         "numeric_columns": numeric_columns,
-#         "categorical_columns": categorical_columns,
-#         "missing_values": {k: int(v) for k, v in missing_values.items()},
-#         "missing_percentage": missing_percentage,
-#         "summary_stats": summary_stats,
-#     }
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib
+matplotlib.use("Agg")
 import io
 import base64
 
@@ -148,6 +125,7 @@ def fig_to_base64():
     img_base64 = base64.b64encode(buf.read()).decode("utf-8")
     plt.close()
     return img_base64
+
 
 def do_eda(session):
     df: pd.DataFrame = session.get("df")
@@ -160,7 +138,7 @@ def do_eda(session):
     missing_values = df.isnull().sum().to_dict()
     missing_percentage = (df.isnull().mean() * 100).round(2).to_dict()
 
-    # Summary Stats
+    # ===== Summary Stats =====
     summary_stats = {}
     for c in numeric_columns:
         s = df[c].describe()
@@ -174,32 +152,62 @@ def do_eda(session):
             "q3": None if pd.isna(df[c].quantile(0.75)) else float(df[c].quantile(0.75))
         }
 
-    # ---- Visualizations ---- #
+    # ========= Visualizations ========= #
     visualizations = {
+        "general": {},
         "numeric": {},
-        "categorical": {}
+        "categorical": {},
+        "bivariate": {}
     }
 
-    # Numeric Plots: Hist + Boxplot
+    # --- General Plots ---
+    # Data Types Count
+    plt.figure()
+    df.dtypes.value_counts().plot(kind="bar")
+    plt.title("Column Data Types Count")
+    visualizations["general"]["dtype_count"] = fig_to_base64()
+
+    # Missing Value Pie Chart
+    total_vals = df.size
+    missing_total = df.isnull().sum().sum()
+    plt.figure()
+    plt.pie([total_vals - missing_total, missing_total], labels=["Non-Missing", "Missing"], autopct='%1.1f%%')
+    plt.title("Missing Value Distribution")
+    visualizations["general"]["missing_pie"] = fig_to_base64()
+
+    # --- Numeric (Histogram + Boxplot) ---
     for col in numeric_columns:
-        # Histogram
-        plt.figure(figsize=(5, 3))
-        plt.hist(df[col].dropna(), bins=20)
-        plt.title(f"Histogram of {col}")
+        plt.figure()
+        sns.histplot(df[col].dropna(), kde=True, bins=30)
+        plt.title(f"Histogram: {col}")
         visualizations["numeric"][col + "_hist"] = fig_to_base64()
 
-        # Boxplot
-        plt.figure(figsize=(4, 4))
-        plt.boxplot(df[col].dropna())
-        plt.title(f"Boxplot of {col}")
+        plt.figure()
+        sns.boxplot(x=df[col])
+        plt.title(f"Boxplot: {col}")
         visualizations["numeric"][col + "_box"] = fig_to_base64()
 
-    # Categorical Plots: Countplot
+    # --- Categorical Countplots ---
     for col in categorical_columns:
-        plt.figure(figsize=(6, 3))
-        df[col].value_counts().plot(kind="bar")
-        plt.title(f"Count Plot of {col}")
-        visualizations["categorical"][col + "_countplot"] = fig_to_base64()
+        plt.figure(figsize=(6,4))
+        df[col].value_counts().head(15).plot(kind="bar")
+        plt.title(f"Count Plot: {col}")
+        visualizations["categorical"][col + "_count"] = fig_to_base64()
+
+    # --- Bivariate (Correlation Heatmap) ---
+    if len(numeric_columns) > 1:
+        plt.figure(figsize=(8,6))
+        sns.heatmap(df[numeric_columns].corr(), annot=False, cmap="coolwarm")
+        plt.title("Correlation Heatmap")
+        visualizations["bivariate"]["correlation_heatmap"] = fig_to_base64()
+
+    # --- Bivariate: First Pair Scatter ---
+    if len(numeric_columns) >= 2:
+        col1, col2 = numeric_columns[:2]
+        plt.figure()
+        sns.scatterplot(x=df[col1], y=df[col2])
+        plt.title(f"Scatter: {col1} vs {col2}")
+        visualizations["bivariate"][f"{col1}_vs_{col2}_scatter"] = fig_to_base64()
 
     return {
         "numeric_columns": numeric_columns,
@@ -360,28 +368,6 @@ def do_train(session, target_column, task_type, model_type, session_id):
     joblib.dump(pipeline, "trained_model.pkl")
     return {"model_type": model_type, "task_type": task_type, "training_complete": True, "sessionId": session_id, "used_features": selected_features or list(X.columns)}
 
-# def do_evaluate(session):
-#     pipeline = session.get("pipeline")
-#     X_test = session.get("X_test")
-#     y_test = session.get("y_test")
-#     if pipeline is None or X_test is None or y_test is None:
-#         raise ValueError("No trained model or test set found.")
-#     preds = pipeline.predict(X_test)
-#     if pd.api.types.is_numeric_dtype(y_test) and y_test.nunique() > 20:
-#         rmse = root_mean_squared_error(y_test, preds, squared=False)
-#         r2 = r2_score(y_test, preds)
-#         return {"rmse": float(rmse), "r2": float(r2)}
-#     else:
-#         acc = accuracy_score(y_test, preds)
-#         if len(y_test.unique()) <= 2:
-#             prec = precision_score(y_test, preds, zero_division=0)
-#             rec = recall_score(y_test, preds, zero_division=0)
-#             f1 = f1_score(y_test, preds, zero_division=0)
-#         else:
-#             prec = precision_score(y_test, preds, average="macro", zero_division=0)
-#             rec = recall_score(y_test, preds, average="macro", zero_division=0)
-#             f1 = f1_score(y_test, preds, average="macro", zero_division=0)
-#         return {"test_accuracy": float(acc), "precision": float(prec), "recall": float(rec), "f1_score": float(f1)}
 
 def do_evaluate(session):
     pipeline = session.get("pipeline")
@@ -530,51 +516,6 @@ async def evaluate_from_file(target_column: str, file: UploadFile = File(...)):
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
-# from fastapi import UploadFile, File
-# import pandas as pd
-# import joblib
-# from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-
-# @app.post("/test-model")
-# def test_model(file: UploadFile = File(...)):
-#     df = pd.read_csv(file.file)
-
-#     # Load Saved Full Pipeline Model
-#     model = joblib.load("trained_model.pkl")
-
-#     # Assume last column is target if present
-#     has_target = True
-#     if len(df.columns) <= 1:
-#         has_target = False
-
-#     if has_target:
-#         X = df.iloc[:, :-1]
-#         y = df.iloc[:, -1]
-#         preds = model.predict(X)
-
-#         metrics = {
-#             "accuracy": float(accuracy_score(y, preds)),
-#             "precision": float(precision_score(y, preds, average='weighted')),
-#             "recall": float(recall_score(y, preds, average='weighted')),
-#             "f1_score": float(f1_score(y, preds, average='weighted')),
-#         }
-
-#         cm = confusion_matrix(y, preds).tolist()
-
-#         return {
-#             "metrics": metrics,
-#             "confusion_matrix": cm,
-#             "sample_predictions": preds[:10].tolist()
-#         }
-
-#     else:
-#         preds = model.predict(df)
-#         return {
-#             "message": "No target column detected. Returning predictions only.",
-#             "sample_predictions": preds[:10].tolist()
-#         }
 
 
 
