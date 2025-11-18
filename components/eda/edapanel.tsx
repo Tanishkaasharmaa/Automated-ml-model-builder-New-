@@ -31,10 +31,10 @@ export default function EdaPanel({ edaResults, performEDA, loading, onNext }: Pr
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Exploratory Data Analysis</h2>
-      <p className="text-muted-foreground mb-6">
+      {/* <h2 className="text-2xl font-bold mb-4">Exploratory Data Analysis</h2> */}
+      {/* <p className="text-muted-foreground mb-6">
         Analyze your dataset with automatic visualizations and statistics
-      </p>
+      </p> */}
 
       {!edaResults ? (
         <div className="text-center py-8">
@@ -51,44 +51,6 @@ export default function EdaPanel({ edaResults, performEDA, loading, onNext }: Pr
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="p-4 border border-border">
-              <h3 className="font-semibold mb-3">Dataset Overview</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Numeric Columns:</span>
-                  <span className="font-medium">{edaResults.numeric_columns?.length ?? 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Categorical Columns:</span>
-                  <span className="font-medium">{edaResults.categorical_columns?.length ?? 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Missing Values:</span>
-                  <span className="font-medium">{totalMissing}</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4 border border-border">
-              <h3 className="font-semibold mb-3">Missing Values by Column</h3>
-              <div className="space-y-2 text-sm max-h-40 overflow-y-auto">
-                {edaResults.missing_values && Object.keys(edaResults.missing_values).length > 0 ? (
-                  Object.entries(edaResults.missing_values).map(([col, count]) => (
-                    <div key={col} className="flex justify-between">
-                      <span className="text-muted-foreground truncate">{col}:</span>
-                      <span className={count > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        {count} ({(edaResults.missing_percentage?.[col] ?? 0).toFixed(1)}%)
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground">No missing values found.</div>
-                )}
-              </div>
-            </Card>
-          </div>
-
           {edaResults.numeric_columns && edaResults.numeric_columns.length > 0 && (
             <Card className="p-4 border border-border">
               <h3 className="font-semibold mb-3">Summary Statistics</h3>
@@ -162,11 +124,7 @@ export default function EdaPanel({ edaResults, performEDA, loading, onNext }: Pr
         </div>
       )}
 
-      <div className="mt-6 flex justify-end">
-        <Button onClick={onNext ?? (() => {})} variant={"ghost"}>
-          Next: Data Validation
-        </Button>
-      </div>
+
     </Card>
   );
 }

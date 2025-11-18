@@ -66,8 +66,7 @@ export default function DocumentationPage() {
               <div>
                 <h2 className="text-xl font-semibold mb-2">4. Clean Data</h2>
                 <p className="text-muted-foreground">
-                  Choose how to handle missing values (fill with mean/median or drop rows) and encode categorical
-                  features using one-hot or label encoding.
+                  Choose how to handle missing values (fill with mean/median or drop rows).
                 </p>
               </div>
             </div>
@@ -82,7 +81,7 @@ export default function DocumentationPage() {
                 <h2 className="text-xl font-semibold mb-2">5. Choose Task Type</h2>
                 <p className="text-muted-foreground">
                   Select whether you want to perform Classification (predict categories), Regression (predict continuous
-                  values), or Clustering (group similar data points).
+                  values).
                 </p>
               </div>
             </div>
@@ -142,7 +141,7 @@ export default function DocumentationPage() {
                 <h2 className="text-xl font-semibold mb-2">9. Make Predictions</h2>
                 <p className="text-muted-foreground">
                   Input new data to get real predictions from your trained model. Download your model as a pickle (.pkl)
-                  file for use in other applications. Export a complete pipeline report as PDF or CSV.
+                  file for use in other applications.
                 </p>
               </div>
             </div>

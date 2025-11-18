@@ -108,7 +108,7 @@ export default function UploadPage() {
       <div className="container py-12 max-w-5xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-3">Upload Your Dataset</h1>
-          <p className="text-lg text-muted-foreground">Start by uploading your data in CSV, JSON, or Excel format</p>
+          <p className="text-lg text-muted-foreground">Start by uploading your data in CSV format</p>
         </div>
 
         <div className="grid gap-6">
@@ -133,7 +133,7 @@ export default function UploadPage() {
 
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Drop your file here or click to browse</h3>
-                  <p className="text-muted-foreground">Supports CSV, JSON, and Excel files</p>
+                  <p className="text-muted-foreground">Supports CSV files</p>
                 </div>
 
                 <input

@@ -48,7 +48,7 @@ export default function HomePage() {
               </div>
               <h3 className="mb-2 text-xl font-semibold">Upload Dataset</h3>
               <p className="text-muted-foreground">
-                Support for CSV, JSON, and Excel formats. Preview your data instantly.
+                Support for CSV format. Preview your data instantly.
               </p>
             </Card>
 
@@ -66,7 +66,7 @@ export default function HomePage() {
               </div>
               <h3 className="mb-2 text-xl font-semibold">Clean & Prepare</h3>
               <p className="text-muted-foreground">
-                Handle missing values, encode features, and select important variables.
+                Handle missing values, and select important variables.
               </p>
             </Card>
 
@@ -75,7 +75,7 @@ export default function HomePage() {
                 <Target className="h-6 w-6 text-secondary" />
               </div>
               <h3 className="mb-2 text-xl font-semibold">Choose Task</h3>
-              <p className="text-muted-foreground">Classification, Regression, or Clustering — we guide you through.</p>
+              <p className="text-muted-foreground">Classification or Regression we guide you through.</p>
             </Card>
 
             <Card className="p-6 hover:shadow-lg transition-shadow">

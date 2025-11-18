@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import EdaPanel from "@/components/eda/edapanel"
+
+
 
 import {
   BarChart3,
@@ -159,6 +162,15 @@ export default function WorkflowPage() {
     if (result) setCleaningResults(result)
   }
 
+  // const performCleaning = async () => {
+  //   const result = await callMLAPI("clean", { strategy: cleaningStrategy })
+  //   if (result) {
+  //     setCleaningResults(result)
+  //     setDataset(result.cleaned_data) // update dataset for future API calls
+  //   }
+  // }
+
+
   const detectTask = async () => {
     if (!targetColumn) {
       alert("Please select a target column")
@@ -198,20 +210,26 @@ export default function WorkflowPage() {
     if (result) setPredictionResult(result)
   }
 
-  const runTestEvaluation = async () => {
-    if (!testFile) {  
+
+    const runTestEvaluation = async () => {
+    if (!testFile) {
       alert("Please upload a dataset first.");
-      return; 
+      return;
     }
+
     const formData = new FormData();
-    formData.append("file", testFile); 
+    formData.append("file", testFile);
+    formData.append("session_id", sessionId);   // <-- REQUIRED
+
     const response = await fetch("http://localhost:8000/test-model", {
       method: "POST",
       body: formData,
     });
+
     const data = await response.json();
     setTestResults(data);
   };
+
 
   const columns = dataset.length > 0 ? Object.keys(dataset[0]) : []
 
@@ -283,15 +301,151 @@ export default function WorkflowPage() {
           </div>
         </div>
 
-        {/* Content Area */}
         <Tabs value={currentStep} onValueChange={setCurrentStep}>
           <TabsContent value="eda" className="mt-0">
+          <h2 className="text-2xl font-bold mb-4">Exploratory Data Analysis</h2>
+          {/* 1. Overview Cards — always at top */}
+            {edaResults && (
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
+                <Card className="p-4 border border-border shadow-sm">
+                  <h3 className="text-sm text-muted-foreground font-bold">Rows</h3>
+                  <p className="text-2xl font-bold">{edaResults.row_count}</p>
+                </Card>
+
+                <Card className="p-4 border border-border shadow-sm">
+                  <h3 className="text-sm text-muted-foreground font-bold">Columns</h3>
+                  <p className="text-2xl font-bold">{edaResults.column_count}</p>
+                </Card>
+
+                <Card className="p-4 border border-border shadow-sm">
+                  <h3 className="text-sm text-muted-foreground font-bold ">Total Missing Values</h3>
+                  <p className="text-2xl font-bold">{edaResults.total_missing_values}</p>
+                </Card>
+              </div>
+            )}
+            {edaResults && (
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
+
+                   {/* Dataset Overview */}
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-3">Dataset Overview</h3>
+
+                      <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <div className="font-bold text-muted-foreground">Numeric Columns:</div>
+                        <div className="text-right font-bold">{edaResults.numeric_columns.length}</div>
+
+                        <div className="font-bold text-muted-foreground">Categorical Columns:</div>
+                        <div className="text-right font-bold">{edaResults.categorical_columns.length}</div>
+
+                        <div className="font-bold text-muted-foreground">Total Missing Values:</div>
+                        <div className="text-right font-bold">{edaResults.total_missing_values}</div>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
+            {edaResults?.missing_values_pie_chart && edaResults?.missing_values_table && (
+              <div className="flex flex-col md:flex-row gap-6 mb-8">
+
+            {/* Missing Values Section (Side-by-Side) */}
+                {edaResults?.missing_values_pie_chart && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-2">Missing Values Percentage</h3>
+                    <img
+                      src={`data:image/png;base64,${edaResults.missing_values_pie_chart}`}
+                      alt="Missing values pie chart"
+                      className="rounded-lg border w-full max-w-[600px] h-100"
+                    />
+                  </div>
+                )}
+
+                {/* Table */}
+                <Card className="w-full md:w-2/3 p-6">
+                  <h3 className="text-xl font-semibold mb-4">Missing Values Table</h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-200 rounded-lg">
+                      <thead>
+                        <tr className="bg-gray-100 text-left">
+                          <th className="border px-4 py-2">Column</th>
+                          <th className="border px-4 py-2">Missing Count</th>
+                          <th className="border px-4 py-2">Missing Percentage</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {edaResults.missing_values_table.map((row: any) => (
+                          <tr key={row.column}>
+                            <td className="border px-4 py-2 font-medium">{row.column}</td>
+                            <td className="border px-4 py-2">{row.missing_count}</td>
+                            <td className="border px-4 py-2">{row.missing_percentage}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+              </div>
+            )}
+
+
+            {/* 2. EDA Main Panel */}
             <EdaPanel
               edaResults={edaResults}
               performEDA={performEDA}
               loading={loading}
               onNext={() => setCurrentStep("validate")}
             />
+
+            {edaResults?.distribution_shapes && (
+              <Card className="p-6 mb-8">
+                <h3 className="text-xl font-semibold mb-4">Distribution Shape (Skewness)</h3>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse border border-gray-200 rounded-lg">
+                    <thead>
+                      <tr className="bg-gray-100 text-left">
+                        <th className="border px-4 py-2">Feature</th>
+                        <th className="border px-4 py-2">Skewness</th>
+                        <th className="border px-4 py-2">Shape</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {Object.entries(edaResults.distribution_shapes).map(([col, info]: any) => (
+                        <tr key={col}>
+                          <td className="border px-4 py-2 font-medium">{col}</td>
+                          <td className="border px-4 py-2">{info.skewness.toFixed(3)}</td>
+                          <td className="border px-4 py-2">{info.shape}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+
+            {edaResults?.heatmap && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-2">Correlation Heatmap</h3>
+                <img
+                  src={`data:image/png;base64,${edaResults.heatmap}`}
+                  alt="Correlation Heatmap"
+                  className="rounded-lg border w-full max-w-[700px] h-auto"
+                  style={{ width: "600px", maxWidth: "700px", height: "auto" }}
+                />
+              </div>
+            )}
+
+            {/* 4. NEXT BUTTON — always at end */}
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setCurrentStep("validate")}>
+                Next: Data Validation
+              </Button>
+            </div>
+
           </TabsContent>
 
           <TabsContent value="validate" className="mt-0">
@@ -601,17 +755,22 @@ export default function WorkflowPage() {
                     <SelectContent>
                       {taskType === "classification" ? (
                         <>
-                          <SelectItem value="random_forest">Random Forest Classifier</SelectItem>
+                          <SelectItem value="random_forest">Random Forest</SelectItem>
                           <SelectItem value="logistic_regression">Logistic Regression</SelectItem>
-                          <SelectItem value="decision_tree">Decision Tree Classifier</SelectItem>
+                          <SelectItem value="svm">Support Vector Machine (SVM)</SelectItem>
+                          <SelectItem value="decision_tree">Decision Tree</SelectItem>
+                          <SelectItem value="knn">K-Nearest Neighbors (KNN)</SelectItem>
                         </>
                       ) : (
                         <>
                           <SelectItem value="random_forest">Random Forest Regressor</SelectItem>
                           <SelectItem value="linear_regression">Linear Regression</SelectItem>
+                          <SelectItem value="svm">Support Vector Regressor (SVR)</SelectItem>
                           <SelectItem value="decision_tree">Decision Tree Regressor</SelectItem>
+                          <SelectItem value="knn">KNN Regressor</SelectItem>
                         </>
                       )}
+
                     </SelectContent>
                   </Select>
                 </div>
