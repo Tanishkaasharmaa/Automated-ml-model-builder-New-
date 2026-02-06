@@ -12,7 +12,6 @@ model = joblib.load("trained_model (12).pkl")
 # Load test dataset
 df = pd.read_csv("diabetes.csv")
 
-# Detect target column automatically (last column)
 target_column = "Outcome"
 
 y_true = df[target_column]
